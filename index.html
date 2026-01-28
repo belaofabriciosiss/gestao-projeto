@@ -15,6 +15,37 @@
             min-height: 100vh;
         }
 
+        /* --- TELA DE LOGIN --- */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            padding: 20px;
+        }
+        .card-login {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .login-icon {
+            width: 70px;
+            height: 70px;
+            background: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            color: #1e3c72;
+            font-size: 1.8rem;
+        }
+
         /* --- Estilos do Menu Inicial --- */
         .menu-header {
             padding: 60px 0 40px;
@@ -54,15 +85,13 @@
             font-size: 2rem;
             box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
-        
-        .card-menu:hover .menu-icon-bg {
-            transform: scale(1.1);
-            transition: transform 0.3s;
-        }
 
         /* --- Estilos da Aplicação (Gestão) --- */
+        #view-menu, #view-atividades {
+            display: none; /* Escondidos até logar */
+        }
+        
         .app-view {
-            display: none; /* Oculto inicialmente */
             padding-bottom: 100px;
         }
 
@@ -96,7 +125,6 @@
             transition: transform 0.2s;
             border-left: 5px solid #ccc;
         }
-        .card-task:active { transform: scale(0.98); }
 
         /* Cores de Status */
         .status-pendente { border-left-color: #ffc107; }
@@ -109,7 +137,6 @@
         .badge-finalizado { background-color: #198754; }
         .badge-cancelado { background-color: #dc3545; }
 
-        /* Labels e Botões */
         .date-label { font-size: 0.75rem; text-transform: uppercase; color: #6c757d; font-weight: 700; }
         .date-value { font-size: 0.9rem; font-weight: 500; color: #212529; }
         
@@ -157,15 +184,40 @@
         <h5 class="fw-bold text-dark" id="loading-text">Carregando...</h5>
     </div>
 
+    <!-- TELA 0: LOGIN (NOVA) -->
+    <div id="view-login" class="login-container">
+        <div class="card-login">
+            <div class="login-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h4 class="fw-bold mb-4">Acesso Restrito</h4>
+            
+            <form id="formLogin">
+                <div class="form-floating mb-3 text-start">
+                    <input type="number" class="form-control" id="loginCpf" placeholder="CPF" required>
+                    <label for="loginCpf">CPF (somente números)</label>
+                </div>
+                <div class="form-floating mb-4 text-start">
+                    <input type="password" class="form-control" id="loginSenha" placeholder="Senha" required>
+                    <label for="loginSenha">Senha</label>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg fw-bold">ENTRAR</button>
+                </div>
+            </form>
+            <p class="mt-3 text-danger small d-none" id="loginError"><i class="fas fa-exclamation-circle me-1"></i>Credenciais inválidas.</p>
+        </div>
+    </div>
+
     <!-- TELA 1: MENU INICIAL -->
     <div id="view-menu" class="container">
         <div class="menu-header">
-            <h2 class="fw-bold text-dark">Olá, Bem-vindo!</h2>
+            <h2 class="fw-bold text-dark">Olá, <span id="user-name-display">Usuário</span>!</h2>
             <p class="text-muted">Selecione o módulo para acessar</p>
         </div>
 
         <div class="row justify-content-center g-4">
-            <!-- Card Módulo Atividades -->
             <div class="col-6 col-md-4 col-lg-3">
                 <div class="card-menu" onclick="navegarPara('atividades')">
                     <div class="menu-icon-bg" style="background: linear-gradient(135deg, #0061f2 0%, #69c0ff 100%);">
@@ -175,8 +227,6 @@
                     <h6 class="fw-bold text-dark">Atividades</h6>
                 </div>
             </div>
-
-            <!-- Card Placeholder (Futuro) -->
             <div class="col-6 col-md-4 col-lg-3">
                 <div class="card-menu opacity-50" style="cursor: default;">
                     <div class="menu-icon-bg" style="background: #e9ecef; color: #adb5bd;">
@@ -186,33 +236,31 @@
                 </div>
             </div>
         </div>
+        
+        <div class="text-center mt-5">
+            <button onclick="fazerLogout()" class="btn btn-link text-danger text-decoration-none">
+                <i class="fas fa-sign-out-alt me-1"></i> Sair
+            </button>
+        </div>
     </div>
 
     <!-- TELA 2: APLICAÇÃO GESTÃO DE ATIVIDADES -->
     <div id="view-atividades" class="app-view">
-        
-        <!-- Cabeçalho -->
         <div class="header-bg text-center">
             <a href="#" class="btn-back-menu" onclick="navegarPara('menu')">
                 <i class="fas fa-arrow-left me-1"></i> Voltar
             </a>
-            
             <div class="container mt-2">
                 <h4 class="fw-bold mb-1"><i class="fas fa-clipboard-check me-2"></i>Gestão das Atividades</h4>
                 <p class="small opacity-75 mb-3">Utilize os filtros abaixo para visualizar a agenda</p>
-                
                 <div class="row justify-content-center">
                     <div class="col-md-6 col-10">
-                        
-                        <!-- Filtro Analista -->
                         <div class="input-group shadow-sm rounded-3 overflow-hidden mb-3">
                             <span class="input-group-text border-0 bg-white text-primary" style="min-width: 45px; justify-content: center;"><i class="fas fa-user"></i></span>
                             <select class="form-select border-0" id="analistaSelect" onchange="filtrarTarefas()">
                                 <option value="" selected disabled>Carregando analistas...</option>
                             </select>
                         </div>
-
-                        <!-- Filtro Status -->
                         <div class="input-group shadow-sm rounded-3 overflow-hidden">
                             <span class="input-group-text border-0 bg-white text-primary" style="min-width: 45px; justify-content: center;"><i class="fas fa-filter"></i></span>
                             <select class="form-select border-0" id="statusSelect" onchange="filtrarTarefas()">
@@ -223,13 +271,11 @@
                                 <option value="Cancelado">Cancelado</option>
                             </select>
                         </div>
-
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Conteúdo Principal -->
         <div class="container py-4">
             <div id="listaTarefas">
                 <div class="text-center text-muted mt-5">
@@ -239,7 +285,6 @@
             </div>
         </div>
 
-        <!-- Botão Flutuante -->
         <button class="btn btn-primary btn-refresh-float" onclick="carregarDadosPlanilha()">
             <i class="fas fa-sync-alt"></i>
         </button>
@@ -255,7 +300,6 @@
                 </div>
                 <div class="modal-body">
                     <form name="submit-to-google-sheet" id="formEdicao">
-                        <!-- ID DA LINHA para evitar duplicidade -->
                         <input type="hidden" id="form_row_index" name="row_index">
                         <input type="hidden" id="form_analista" name="Analista">
                         <input type="hidden" id="form_atividade" name="Atividade">
@@ -264,7 +308,6 @@
                             <label class="form-label small text-muted">Atividade</label>
                             <input type="text" class="form-control bg-light" id="view_atividade" readonly fw-bold">
                         </div>
-
                         <div class="row g-2 mb-3">
                             <div class="col-6">
                                 <label class="form-label small">Execução Início</label>
@@ -275,7 +318,6 @@
                                 <input type="datetime-local" class="form-control" name="Exec_Dt_Fim" id="form_dt_fim">
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label small">Status</label>
                             <select class="form-select" name="Status" id="form_status" required>
@@ -285,12 +327,10 @@
                                 <option value="Cancelado">Cancelado</option>
                             </select>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label small">Observação</label>
                             <textarea class="form-control" name="Observação" id="form_obs" rows="3" placeholder="Detalhes da execução..."></textarea>
                         </div>
-
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">Salvar Alterações</button>
                         </div>
@@ -300,7 +340,6 @@
         </div>
     </div>
 
-    <!-- Toast Copy -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11000">
         <div id="copyToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -315,8 +354,13 @@
         // --- CONFIGURAÇÃO ---
         const scriptURL = 'https://script.google.com/macros/s/AKfycbxgUeSM5t6E0E6s4itANzP-7Bc4UeGg6REZ4zal9u-S7v5LaR6iXpEpmrktg821yY08/exec'; 
 
+        // Elementos UI
+        const viewLogin = document.getElementById('view-login');
         const viewMenu = document.getElementById('view-menu');
         const viewAtividades = document.getElementById('view-atividades');
+        const formLogin = document.getElementById('formLogin');
+        const loginError = document.getElementById('loginError');
+        
         let dadosGlobais = [];
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingText = document.getElementById('loading-text');
@@ -327,6 +371,55 @@
         const toastEl = document.getElementById('copyToast');
         const toast = new bootstrap.Toast(toastEl);
 
+        // --- SISTEMA DE LOGIN ---
+        
+        formLogin.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const cpf = document.getElementById('loginCpf').value;
+            const senha = document.getElementById('loginSenha').value;
+
+            loginError.classList.add('d-none');
+            loadingText.innerText = 'Verificando credenciais...';
+            loadingOverlay.style.display = 'flex';
+
+            // Monta o FormData com a ação 'login'
+            const formData = new FormData();
+            formData.append('action', 'login');
+            formData.append('cpf', cpf);
+            formData.append('senha', senha);
+
+            fetch(scriptURL, { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    loadingOverlay.style.display = 'none';
+                    if (data.auth === true) {
+                        // Sucesso
+                        document.getElementById('user-name-display').innerText = data.nome || 'Usuário';
+                        viewLogin.style.display = 'none';
+                        viewMenu.style.display = 'block';
+                        // Opcional: Salvar sessão
+                        // sessionStorage.setItem('auth', 'true');
+                    } else {
+                        // Erro
+                        loginError.classList.remove('d-none');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    loadingOverlay.style.display = 'none';
+                    alert('Erro de conexão ao tentar logar.');
+                });
+        });
+
+        function fazerLogout() {
+            viewMenu.style.display = 'none';
+            viewAtividades.style.display = 'none';
+            viewLogin.style.display = 'flex';
+            document.getElementById('formLogin').reset();
+            dadosGlobais = []; // Limpa dados da memória por segurança
+        }
+
+        // --- NAVEGAÇÃO ---
         function navegarPara(tela) {
             if(tela === 'atividades') {
                 viewMenu.style.display = 'none';
@@ -338,6 +431,8 @@
             }
         }
 
+        // --- LÓGICA DE DADOS ---
+
         function carregarDadosPlanilha() {
             if(!scriptURL || scriptURL.includes('COLE_SUA')) {
                 alert('Configure a URL do Script no código!');
@@ -346,6 +441,7 @@
             loadingOverlay.style.display = 'flex';
             loadingText.innerText = 'Sincronizando...';
 
+            // doGet ainda é usado para ler as tarefas
             fetch(scriptURL)
                 .then(res => res.json())
                 .then(data => {
