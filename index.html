@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal do Analista</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* --- Estilos do Menu Inicial --- */
+        .menu-header {
+            padding: 60px 0 40px;
+            text-align: center;
+        }
+        
+        .card-menu {
+            border: none;
+            border-radius: 20px;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .card-menu:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(13, 110, 253, 0.15);
+        }
+
+        .menu-icon-bg {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            color: #fff;
+            font-size: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card-menu:hover .menu-icon-bg {
+            transform: scale(1.1);
+            transition: transform 0.3s;
+        }
+
+        /* --- Estilos da Aplicação (Gestão) --- */
+        .app-view {
+            display: none; /* Oculto inicialmente */
+            padding-bottom: 100px;
+        }
+
+        .header-bg {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 40px 0 50px;
+            border-bottom-left-radius: 25px;
+            border-bottom-right-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .btn-back-menu {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .btn-back-menu:hover { color: white; }
+
+        .card-task {
+            border: none;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+            border-left: 5px solid #ccc;
+        }
+        .card-task:active { transform: scale(0.98); }
+
+        /* Cores de Status */
+        .status-pendente { border-left-color: #ffc107; }
+        .status-em-andamento { border-left-color: #0d6efd; }
+        .status-finalizado { border-left-color: #198754; }
+        .status-cancelado { border-left-color: #dc3545; }
+
+        .badge-pendente { background-color: #ffc107; color: #000; }
+        .badge-em-andamento { background-color: #0d6efd; }
+        .badge-finalizado { background-color: #198754; }
+        .badge-cancelado { background-color: #dc3545; }
+
+        /* Labels e Botões */
+        .date-label { font-size: 0.75rem; text-transform: uppercase; color: #6c757d; font-weight: 700; }
+        .date-value { font-size: 0.9rem; font-weight: 500; color: #212529; }
+        
+        .btn-refresh-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-zap-copy {
+            background-color: #e9f7ef;
+            color: #198754;
+            border: 1px solid #d1e7dd;
+            border-radius: 20px;
+            padding: 2px 10px;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .btn-zap-copy:hover {
+            background-color: #25d366;
+            color: white;
+            border-color: #25d366;
+        }
+
+        #loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95);
+            z-index: 9999;
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay de Carregamento -->
+    <div id="loading-overlay">
+        <div class="spinner-border text-primary mb-3" role="status"></div>
+        <h5 class="fw-bold text-dark" id="loading-text">Carregando...</h5>
+    </div>
+
+    <!-- TELA 1: MENU INICIAL -->
+    <div id="view-menu" class="container">
+        <div class="menu-header">
+            <h2 class="fw-bold text-dark">Olá, Bem-vindo!</h2>
+            <p class="text-muted">Selecione o módulo para acessar</p>
+        </div>
+
+        <div class="row justify-content-center g-4">
+            <!-- Card Módulo Atividades -->
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card-menu" onclick="navegarPara('atividades')">
+                    <div class="menu-icon-bg" style="background: linear-gradient(135deg, #0061f2 0%, #69c0ff 100%);">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1">Gestão das</h6>
+                    <h6 class="fw-bold text-dark">Atividades</h6>
+                </div>
+            </div>
+
+            <!-- Card Placeholder (Futuro) -->
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="card-menu opacity-50" style="cursor: default;">
+                    <div class="menu-icon-bg" style="background: #e9ecef; color: #adb5bd;">
+                        <i class="fas fa-plus"></i>
+                    </div>
+                    <h6 class="fw-bold text-muted">Em Breve</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA 2: APLICAÇÃO GESTÃO DE ATIVIDADES -->
+    <div id="view-atividades" class="app-view">
+        
+        <!-- Cabeçalho -->
+        <div class="header-bg text-center">
+            <a href="#" class="btn-back-menu" onclick="navegarPara('menu')">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+            
+            <div class="container mt-2">
+                <h4 class="fw-bold mb-1"><i class="fas fa-clipboard-check me-2"></i>Gestão das Atividades</h4>
+                <p class="small opacity-75 mb-3">Utilize os filtros abaixo para visualizar a agenda</p>
+                
+                <div class="row justify-content-center">
+                    <div class="col-md-6 col-10">
+                        
+                        <!-- Filtro Analista -->
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden mb-3">
+                            <span class="input-group-text border-0 bg-white text-primary" style="min-width: 45px; justify-content: center;"><i class="fas fa-user"></i></span>
+                            <select class="form-select border-0" id="analistaSelect" onchange="filtrarTarefas()">
+                                <option value="" selected disabled>Carregando analistas...</option>
+                            </select>
+                        </div>
+
+                        <!-- Filtro Status -->
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden">
+                            <span class="input-group-text border-0 bg-white text-primary" style="min-width: 45px; justify-content: center;"><i class="fas fa-filter"></i></span>
+                            <select class="form-select border-0" id="statusSelect" onchange="filtrarTarefas()">
+                                <option value="" selected>Todos os Status</option>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Em Andamento">Em Andamento</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteúdo Principal -->
+        <div class="container py-4">
+            <div id="listaTarefas">
+                <div class="text-center text-muted mt-5">
+                    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                    <p>Aguardando seleção de analista.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botão Flutuante -->
+        <button class="btn btn-primary btn-refresh-float" onclick="carregarDadosPlanilha()">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+    </div>
+
+    <!-- Modais e Toasts -->
+    <div class="modal fade" id="modalEdicao" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Atualizar Atividade</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form name="submit-to-google-sheet" id="formEdicao">
+                        <!-- ID DA LINHA para evitar duplicidade -->
+                        <input type="hidden" id="form_row_index" name="row_index">
+                        <input type="hidden" id="form_analista" name="Analista">
+                        <input type="hidden" id="form_atividade" name="Atividade">
+                        
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Atividade</label>
+                            <input type="text" class="form-control bg-light" id="view_atividade" readonly fw-bold">
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small">Execução Início</label>
+                                <input type="datetime-local" class="form-control" name="Exec_Dt_Inicio" id="form_dt_inicio">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Execução Fim</label>
+                                <input type="datetime-local" class="form-control" name="Exec_Dt_Fim" id="form_dt_fim">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small">Status</label>
+                            <select class="form-select" name="Status" id="form_status" required>
+                                <option value="Pendente">Pendente</option>
+                                <option value="Em Andamento">Em Andamento</option>
+                                <option value="Finalizado">Finalizado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small">Observação</label>
+                            <textarea class="form-control" name="Observação" id="form_obs" rows="3" placeholder="Detalhes da execução..."></textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Salvar Alterações</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Copy -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11000">
+        <div id="copyToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body"><i class="fas fa-check-circle me-2"></i>Texto copiado!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // --- CONFIGURAÇÃO ---
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxgUeSM5t6E0E6s4itANzP-7Bc4UeGg6REZ4zal9u-S7v5LaR6iXpEpmrktg821yY08/exec'; 
+
+        const viewMenu = document.getElementById('view-menu');
+        const viewAtividades = document.getElementById('view-atividades');
+        let dadosGlobais = [];
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const listaDiv = document.getElementById('listaTarefas');
+        const selectAnalista = document.getElementById('analistaSelect');
+        const selectStatus = document.getElementById('statusSelect');
+        const modalEdicao = new bootstrap.Modal(document.getElementById('modalEdicao'));
+        const toastEl = document.getElementById('copyToast');
+        const toast = new bootstrap.Toast(toastEl);
+
+        function navegarPara(tela) {
+            if(tela === 'atividades') {
+                viewMenu.style.display = 'none';
+                viewAtividades.style.display = 'block';
+                if(dadosGlobais.length === 0) carregarDadosPlanilha();
+            } else if (tela === 'menu') {
+                viewAtividades.style.display = 'none';
+                viewMenu.style.display = 'block';
+            }
+        }
+
+        function carregarDadosPlanilha() {
+            if(!scriptURL || scriptURL.includes('COLE_SUA')) {
+                alert('Configure a URL do Script no código!');
+                return;
+            }
+            loadingOverlay.style.display = 'flex';
+            loadingText.innerText = 'Sincronizando...';
+
+            fetch(scriptURL)
+                .then(res => res.json())
+                .then(data => {
+                    dadosGlobais = data;
+                    popularSelectAnalistas(data);
+                    if(selectAnalista.value) filtrarTarefas();
+                    loadingOverlay.style.display = 'none';
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Erro ao carregar dados.');
+                    loadingOverlay.style.display = 'none';
+                });
+        }
+
+        function popularSelectAnalistas(data) {
+            const analistasUnicos = [...new Set(data.map(item => item.Analista).filter(n => n))].sort();
+            const valorAtual = selectAnalista.value;
+            selectAnalista.innerHTML = '<option value="" selected disabled>Escolha o Analista...</option>';
+            analistasUnicos.forEach(nome => {
+                const option = document.createElement('option');
+                option.value = nome;
+                option.text = nome;
+                selectAnalista.appendChild(option);
+            });
+            if(valorAtual && analistasUnicos.includes(valorAtual)) selectAnalista.value = valorAtual;
+        }
+
+        function filtrarTarefas() {
+            const analista = selectAnalista.value;
+            const statusFiltro = selectStatus.value;
+            if(!analista) return;
+
+            listaDiv.innerHTML = '';
+            const tarefas = dadosGlobais.filter(row => {
+                const matchAnalista = row.Analista === analista;
+                const matchStatus = (statusFiltro === "" || row.Status === statusFiltro);
+                return matchAnalista && matchStatus;
+            });
+
+            if(tarefas.length === 0) {
+                listaDiv.innerHTML = `<div class="alert alert-info text-center">Nenhuma atividade encontrada com os filtros atuais.</div>`;
+                return;
+            }
+
+            tarefas.forEach(t => {
+                const dtPlanInicio = formatarDataBR(t.Plan_Dt_Inicio);
+                const dtPlanFim = formatarDataBR(t.Plan_Dt_Fim);
+                const statusSlug = (t.Status || 'pendente').toLowerCase().replace(/\s+/g, '-');
+                const statusClass = `status-${statusSlug}`;
+                const badgeClass = `badge-${statusSlug}`;
+                const safeAnalista = (t.Analista || '').replace(/'/g, "\\'");
+                const safeLocal = (t.Local || 'Remoto').replace(/'/g, "\\'");
+                const safeAtividade = (t.Atividade || '').replace(/'/g, "\\'");
+
+                const cardHTML = `
+                <div class="card card-task ${statusClass} p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge ${badgeClass} rounded-pill">${t.Status || 'Pendente'}</span>
+                        <div class="d-flex align-items-center">
+                            <small class="text-muted me-2"><i class="fas fa-map-marker-alt me-1"></i>${t.Local || 'Remoto'}</small>
+                            <button class="btn-zap-copy" onclick="copiarParaWhatsapp('${safeAnalista}', '${safeLocal}', '${safeAtividade}')">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <h5 class="fw-bold mb-3">${t.Atividade}</h5>
+                    <div class="row g-2 mb-3 bg-light p-2 rounded">
+                        <div class="col-6 border-end">
+                            <div class="date-label">Início Planejado</div>
+                            <div class="date-value">${dtPlanInicio}</div>
+                        </div>
+                        <div class="col-6 ps-3">
+                            <div class="date-label">Fim Planejado</div>
+                            <div class="date-value">${dtPlanFim}</div>
+                        </div>
+                    </div>
+                    ${t.Observação ? `<p class="small text-muted mb-3"><em><i class="fas fa-info-circle me-1"></i>${t.Observação}</em></p>` : ''}
+                    <button class="btn btn-outline-primary btn-sm w-100" onclick='abrirModalEdicao(${JSON.stringify(t)})'>
+                        <i class="fas fa-pen me-2"></i>Atualizar Execução
+                    </button>
+                </div>`;
+                listaDiv.innerHTML += cardHTML;
+            });
+        }
+
+        function copiarParaWhatsapp(analista, local, atividade) {
+            const texto = `${analista} / ${local} / ${atividade}`;
+            const textArea = document.createElement("textarea");
+            textArea.value = texto;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try { document.execCommand('copy'); toast.show(); } catch (err) { prompt('Copie manualmente:', texto); }
+            document.body.removeChild(textArea);
+        }
+
+        function abrirModalEdicao(tarefa) {
+            document.getElementById('form_row_index').value = tarefa.row_index;
+            document.getElementById('form_analista').value = tarefa.Analista;
+            document.getElementById('form_atividade').value = tarefa.Atividade;
+            document.getElementById('view_atividade').value = tarefa.Atividade;
+            document.getElementById('form_status').value = tarefa.Status || 'Pendente';
+            document.getElementById('form_obs').value = tarefa.Observação || '';
+            document.getElementById('form_dt_inicio').value = converterDataInput(tarefa.Exec_Dt_Inicio);
+            document.getElementById('form_dt_fim').value = converterDataInput(tarefa.Exec_Dt_Fim);
+            modalEdicao.show();
+        }
+
+        const form = document.forms['submit-to-google-sheet'];
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            modalEdicao.hide();
+            loadingOverlay.style.display = 'flex';
+            loadingText.innerText = 'Salvando...';
+
+            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+                .then(() => {
+                    alert("Salvo com sucesso!");
+                    form.reset();
+                    carregarDadosPlanilha();
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert("Erro ao salvar.");
+                    loadingOverlay.style.display = 'none';
+                });
+        });
+
+        function formatarDataBR(dataString) {
+            if(!dataString) return '--/--';
+            const d = new Date(dataString);
+            return isNaN(d) ? dataString : d.toLocaleDateString('pt-BR');
+        }
+
+        function converterDataInput(dataString) {
+            if(!dataString) return '';
+            const d = new Date(dataString);
+            if(isNaN(d)) return '';
+            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+            return d.toISOString().slice(0, 16);
+        }
+    </script>
+</body>
+</html>
