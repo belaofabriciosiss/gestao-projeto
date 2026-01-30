@@ -7,18 +7,153 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <!-- VERCEL ANALYTICS (ADICIONADO) -->
+    
+    <!-- VERCEL ANALYTICS -->
     <script type="module">
         import { inject } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics/+esm';
         inject();
     </script>
+
+    <!-- HTML2PDF LIBRARY -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <style>
         body {
             background-color: #f4f6f9;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
+        }
+
+        /* --- ÁREA DE PREPARAÇÃO DO PDF (INVISIBLE STAGING) --- */
+        /* Isso corrige o erro de PDF em branco e garante que não apareça na tela */
+        #offscreen-staging {
+            position: fixed;
+            left: -9999px;
+            top: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            z-index: -1000;
+        }
+
+        /* --- ESTILOS DO PDF --- */
+        #pdf-template {
+            width: 700px; /* REDUZIDO de 800px para 700px para evitar cortes laterais */
+            /* Min-height permite que cresça se o texto for longo */
+            min-height: 1122px; 
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 10pt;
+            color: #000;
+            background: white;
+            padding: 40px; 
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Wrapper para o conteúdo principal */
+        .pdf-content-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Layout */
+        .pdf-header-table-layout {
+            width: 100%;
+            border-collapse: collapse;
+            border: none;
+            margin-bottom: 5px;
+        }
+        .pdf-header-table-layout td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        /* LOGO EM CSS */
+        .giespp-logo-container {
+            font-family: Arial, sans-serif;
+            line-height: 1;
+        }
+        .giespp-main-text {
+            font-weight: 900;
+            font-size: 42px;
+            letter-spacing: -2px;
+            margin-bottom: 2px;
+        }
+        .text-teal { color: #40B4A6; }
+        .text-blue { color: #00609C; }
+        
+        .giespp-sub-text {
+            font-size: 9px;
+            text-transform: uppercase;
+            color: #555;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+            max-width: 250px;
+        }
+
+        .report-title {
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #000;
+            margin-bottom: 5px;
+            text-align: right;
+        }
+
+        .header-divider {
+            border-bottom: 3px solid #7f7f7f;
+            margin-bottom: 15px;
+        }
+
+        /* Tabelas Gerais */
+        .pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 9pt;
+            page-break-inside: avoid; 
+        }
+
+        .pdf-table td, .pdf-table th {
+            border: 1px solid #000;
+            padding: 4px 6px;
+            vertical-align: middle;
+        }
+
+        .bg-header {
+            background-color: #DBE5F1; /* Azul Claro */
+            font-weight: bold;
+            width: 18%;
+        }
+
+        .bg-header-wide {
+            background-color: #DBE5F1;
+            font-weight: bold;
+        }
+
+        /* Tabela de Assinaturas */
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9pt;
+            margin-top: 10px;
+            page-break-inside: avoid; 
+        }
+        .signature-table td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+            height: 80px;
+        }
+        .signature-header {
+            background-color: #DBE5F1;
+            font-weight: normal;
+            border: 1px solid #000;
+            padding: 4px 6px;
         }
 
         /* --- TELA DE LOGIN --- */
@@ -157,20 +292,24 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
 
-        .btn-zap-copy {
-            background-color: #e9f7ef;
-            color: #198754;
-            border: 1px solid #d1e7dd;
-            border-radius: 20px;
-            padding: 2px 10px;
-            font-size: 0.8rem;
+        .btn-action-icon {
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
             transition: all 0.2s;
+            margin-left: 5px;
+            border: 1px solid transparent;
+            background-color: #f8f9fa;
         }
-        .btn-zap-copy:hover {
-            background-color: #25d366;
-            color: white;
-            border-color: #25d366;
-        }
+        
+        .btn-zap { color: #198754; border-color: #d1e7dd; background-color: #e9f7ef; }
+        .btn-zap:hover { background-color: #198754; color: white; }
+
+        .btn-pdf { color: #dc3545; border-color: #f8d7da; background-color: #f8d7da; }
+        .btn-pdf:hover { background-color: #dc3545; color: white; }
 
         #loading-overlay {
             display: none;
@@ -190,39 +329,32 @@
         <h5 class="fw-bold text-dark" id="loading-text">Carregando...</h5>
     </div>
 
-    <!-- TELA 0: LOGIN (NOVA) -->
+    <!-- TELA 0: LOGIN -->
     <div id="view-login" class="login-container">
         <div class="card-login">
-            <div class="login-icon">
-                <i class="fas fa-lock"></i>
-            </div>
+            <div class="login-icon"><i class="fas fa-lock"></i></div>
             <h4 class="fw-bold mb-4">Acesso Restrito</h4>
-            
             <form id="formLogin">
                 <div class="form-floating mb-3 text-start">
                     <input type="number" class="form-control" id="loginCpf" placeholder="CPF" required>
-                    <label for="loginCpf">CPF (somente números)</label>
+                    <label>CPF (somente números)</label>
                 </div>
                 <div class="form-floating mb-4 text-start">
                     <input type="password" class="form-control" id="loginSenha" placeholder="Senha" required>
-                    <label for="loginSenha">Senha</label>
+                    <label>Senha</label>
                 </div>
-                
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg fw-bold">ENTRAR</button>
-                </div>
+                <div class="d-grid"><button type="submit" class="btn btn-primary btn-lg fw-bold">ENTRAR</button></div>
             </form>
             <p class="mt-3 text-danger small d-none" id="loginError"><i class="fas fa-exclamation-circle me-1"></i>Credenciais inválidas.</p>
         </div>
     </div>
 
-    <!-- TELA 1: MENU INICIAL -->
+    <!-- TELA 1: MENU -->
     <div id="view-menu" class="container">
         <div class="menu-header">
             <h2 class="fw-bold text-dark">Olá, <span id="user-name-display">Usuário</span>!</h2>
             <p class="text-muted">Selecione o módulo para acessar</p>
         </div>
-
         <div class="row justify-content-center g-4">
             <div class="col-6 col-md-4 col-lg-3">
                 <div class="card-menu" onclick="navegarPara('atividades')">
@@ -242,7 +374,6 @@
                 </div>
             </div>
         </div>
-        
         <div class="text-center mt-5">
             <button onclick="fazerLogout()" class="btn btn-link text-danger text-decoration-none">
                 <i class="fas fa-sign-out-alt me-1"></i> Sair
@@ -250,7 +381,7 @@
         </div>
     </div>
 
-    <!-- TELA 2: APLICAÇÃO GESTÃO DE ATIVIDADES -->
+    <!-- TELA 2: GESTÃO ATIVIDADES -->
     <div id="view-atividades" class="app-view">
         <div class="header-bg text-center">
             <a href="#" class="btn-back-menu" onclick="navegarPara('menu')">
@@ -281,22 +412,174 @@
                 </div>
             </div>
         </div>
-
         <div class="container py-4">
-            <div id="listaTarefas">
-                <div class="text-center text-muted mt-5">
-                    <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
-                    <p>Aguardando seleção de analista.</p>
+            <!-- LISTA DE TAREFAS CENTRALIZADA -->
+            <div id="listaTarefas" class="row justify-content-center">
+                <div class="col-12">
+                    <div class="text-center text-muted mt-5">
+                        <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                        <p>Aguardando seleção de analista.</p>
+                    </div>
                 </div>
             </div>
         </div>
-
         <button class="btn btn-primary btn-refresh-float" onclick="carregarDadosPlanilha()">
             <i class="fas fa-sync-alt"></i>
         </button>
     </div>
 
-    <!-- Modais e Toasts -->
+    <!-- --- ÁREA DE RENDERIZAÇÃO DO PDF (FORA DA TELA) --- -->
+    <div id="offscreen-staging">
+        <div id="pdf-template">
+            <!-- Wrapper Flexível para o Conteúdo Principal -->
+            <div class="pdf-content-wrapper">
+                <!-- Cabeçalho -->
+                <table class="pdf-header-table-layout">
+                    <tr>
+                        <td style="width: 40%;">
+                            <!-- LOGO EM CSS -->
+                            <div class="giespp-logo-container">
+                                <div class="giespp-main-text">
+                                    <span class="text-teal">GIES</span><span class="text-blue">PP</span>
+                                </div>
+                                <div class="giespp-sub-text">
+                                    GESTÃO INTELIGENTE DA EDUCAÇÃO<br>
+                                    E SAÚDE PÚBLICA E PRIVADA
+                                </div>
+                            </div>
+                        </td>
+                        <td style="width: 60%;">
+                            <div class="report-title">RELATÓRIO DE ATIVIDADES</div>
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="header-divider"></div>
+
+                <!-- Tabela 1: Dados Contratuais -->
+                <table class="pdf-table">
+                    <tr>
+                        <td class="bg-header">Contratada:</td>
+                        <td colspan="3">Giespp Gestão Inteligente de Educação e Saúde Pública e Privada Ltda.</td>
+                    </tr>
+                    <tr>
+                        <td class="bg-header">Contratante:</td>
+                        <td>Prefeitura Municipal de Guarulhos</td>
+                        <td class="bg-header">Produto:</td>
+                        <td>Siss</td>
+                    </tr>
+                    <tr>
+                        <td class="bg-header">Local:</td>
+                        <td colspan="3" id="pdf_local">--</td>
+                    </tr>
+                    <tr>
+                        <td class="bg-header">Referente Entrega Contratual:</td>
+                        <td colspan="3" id="pdf_entrega">--</td>
+                    </tr>
+                    <tr>
+                        <td class="bg-header">Responsável:</td>
+                        <td colspan="3" id="pdf_responsavel">--</td>
+                    </tr>
+                </table>
+                
+                <!-- Tabela 2: Detalhes da Execução -->
+                <table class="pdf-table" style="margin-top: 20px;">
+                    <tr>
+                        <td class="bg-header-wide" style="width: 50%;">Data e Hora Início: <span id="pdf_data_inicio" style="font-weight: normal;">--</span></td>
+                        <td class="bg-header-wide">Data e Hora Fim: <span id="pdf_data_fim" style="font-weight: normal;">--</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="bg-header-wide">Tipo de Atividade: <span style="font-weight: normal;">Suporte Operacional</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" class="bg-header-wide">Descrição da Atividade:</td>
+                    </tr>
+                    <tr>
+                        <td colspan="2" style="height: auto; min-height: 150px; vertical-align: top;" id="pdf_descricao">
+                            <!-- Descrição entra aqui -->
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Tabela 3: Assinaturas -->
+                <div style="margin-top: 20px;">
+                    <div class="signature-header">Atesto que as atividades foram realizadas como descritas.</div>
+                    <table class="signature-table">
+                        <tr>
+                            <td style="width: 25%;">
+                                Data:
+                                <div style="margin-top: 40px; text-align: center;">___ / ___ / ______</div>
+                            </td>
+                            <td style="width: 37.5%;">
+                                Assinatura do Responsável:
+                                <div style="margin-top: 40px; text-align: center; font-size: 8pt;" id="pdf_assinatura_resp">--</div>
+                            </td>
+                            <td style="width: 37.5%;">
+                                Assinatura do Cliente:
+                                <div style="margin-top: 20px; text-align: center; font-size: 8pt;">
+                                    Nome legível e cargo do cliente<br>
+                                    Carimbo com assinatura e matrícula
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <!-- Rodapé é inserido dinamicamente via JS para suportar múltiplas páginas -->
+        </div>
+    </div>
+
+    <!-- MODAL RELATÓRIO PDF -->
+    <div class="modal fade" id="modalRelatorio" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-pdf me-2"></i>Gerar Relatório PDF</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formRelatorio">
+                        <div class="mb-3 p-2 bg-light rounded border">
+                            <small class="text-muted d-block">Analista Responsável</small>
+                            <span class="fw-bold" id="rel_analista">--</span>
+                            <small class="text-muted d-block mt-2">Local</small>
+                            <span class="fw-bold" id="rel_local">--</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Referente Entrega Contratual</label>
+                            <select class="form-select" id="rel_entrega" required>
+                                <option value="" selected disabled>Selecione...</option>
+                                <option value="-6. SUPORTE, MANUTENÇÃO E OPERAÇÃO-Suporte e Manutenção-Siss">-6. SUPORTE, MANUTENÇÃO E OPERAÇÃO-Suporte e Manutenção-Siss</option>
+                                <option value="Treinamento e Capacitação">Treinamento e Capacitação</option>
+                                <option value="Implantação de Módulo">Implantação de Módulo</option>
+                            </select>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small">Início Real</label>
+                                <input type="datetime-local" class="form-control" id="rel_inicio" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small">Fim Real</label>
+                                <input type="datetime-local" class="form-control" id="rel_fim" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Descrição Detalhada</label>
+                            <textarea class="form-control" id="rel_descricao" rows="5" placeholder="Descreva o atendimento realizado..." required></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-danger btn-lg" onclick="gerarPDF()">
+                                <i class="fas fa-download me-2"></i>Baixar PDF
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL EDIÇÃO -->
     <div class="modal fade" id="modalEdicao" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow">
@@ -309,7 +592,6 @@
                         <input type="hidden" id="form_row_index" name="row_index">
                         <input type="hidden" id="form_analista" name="Analista">
                         <input type="hidden" id="form_atividade" name="Atividade">
-                        
                         <div class="mb-3">
                             <label class="form-label small text-muted">Atividade</label>
                             <input type="text" class="form-control bg-light" id="view_atividade" readonly fw-bold">
@@ -335,7 +617,7 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label small">Observação</label>
-                            <textarea class="form-control" name="Observação" id="form_obs" rows="3" placeholder="Detalhes da execução..."></textarea>
+                            <textarea class="form-control" name="Observação" id="form_obs" rows="3"></textarea>
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">Salvar Alterações</button>
@@ -360,7 +642,6 @@
         // --- CONFIGURAÇÃO ---
         const scriptURL = 'https://script.google.com/macros/s/AKfycbxgUeSM5t6E0E6s4itANzP-7Bc4UeGg6REZ4zal9u-S7v5LaR6iXpEpmrktg821yY08/exec'; 
 
-        // Elementos UI
         const viewLogin = document.getElementById('view-login');
         const viewMenu = document.getElementById('view-menu');
         const viewAtividades = document.getElementById('view-atividades');
@@ -374,46 +655,37 @@
         const selectAnalista = document.getElementById('analistaSelect');
         const selectStatus = document.getElementById('statusSelect');
         const modalEdicao = new bootstrap.Modal(document.getElementById('modalEdicao'));
+        const modalRelatorio = new bootstrap.Modal(document.getElementById('modalRelatorio'));
         const toastEl = document.getElementById('copyToast');
         const toast = new bootstrap.Toast(toastEl);
 
-        // --- SISTEMA DE LOGIN ---
-        
+        // --- LOGIN ---
         formLogin.addEventListener('submit', (e) => {
             e.preventDefault();
             const cpf = document.getElementById('loginCpf').value;
             const senha = document.getElementById('loginSenha').value;
-
             loginError.classList.add('d-none');
-            loadingText.innerText = 'Verificando credenciais...';
+            loadingText.innerText = 'Verificando...';
             loadingOverlay.style.display = 'flex';
-
-            // Monta o FormData com a ação 'login'
             const formData = new FormData();
             formData.append('action', 'login');
             formData.append('cpf', cpf);
             formData.append('senha', senha);
-
             fetch(scriptURL, { method: 'POST', body: formData })
                 .then(res => res.json())
                 .then(data => {
                     loadingOverlay.style.display = 'none';
                     if (data.auth === true) {
-                        // Sucesso
                         document.getElementById('user-name-display').innerText = data.nome || 'Usuário';
                         viewLogin.style.display = 'none';
                         viewMenu.style.display = 'block';
-                        // Opcional: Salvar sessão
-                        // sessionStorage.setItem('auth', 'true');
                     } else {
-                        // Erro
                         loginError.classList.remove('d-none');
                     }
                 })
                 .catch(err => {
-                    console.error(err);
                     loadingOverlay.style.display = 'none';
-                    alert('Erro de conexão ao tentar logar.');
+                    alert('Erro de conexão.');
                 });
         });
 
@@ -422,7 +694,7 @@
             viewAtividades.style.display = 'none';
             viewLogin.style.display = 'flex';
             document.getElementById('formLogin').reset();
-            dadosGlobais = []; // Limpa dados da memória por segurança
+            dadosGlobais = [];
         }
 
         // --- NAVEGAÇÃO ---
@@ -437,59 +709,41 @@
             }
         }
 
-        // --- LÓGICA DE DADOS ---
-
+        // --- DADOS ---
         function carregarDadosPlanilha() {
-            if(!scriptURL || scriptURL.includes('COLE_SUA')) {
-                alert('Configure a URL do Script no código!');
-                return;
-            }
+            if(!scriptURL || scriptURL.includes('COLE_SUA')) { alert('URL Script inválida'); return; }
             loadingOverlay.style.display = 'flex';
             loadingText.innerText = 'Sincronizando...';
-
-            // doGet ainda é usado para ler as tarefas
-            fetch(scriptURL)
-                .then(res => res.json())
-                .then(data => {
-                    dadosGlobais = data;
-                    popularSelectAnalistas(data);
-                    if(selectAnalista.value) filtrarTarefas();
-                    loadingOverlay.style.display = 'none';
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert('Erro ao carregar dados.');
-                    loadingOverlay.style.display = 'none';
-                });
+            fetch(scriptURL).then(res => res.json()).then(data => {
+                dadosGlobais = data;
+                popularSelectAnalistas(data);
+                if(selectAnalista.value) filtrarTarefas();
+                loadingOverlay.style.display = 'none';
+            }).catch(err => {
+                alert('Erro ao carregar.'); loadingOverlay.style.display = 'none';
+            });
         }
 
         function popularSelectAnalistas(data) {
-            const analistasUnicos = [...new Set(data.map(item => item.Analista).filter(n => n))].sort();
-            const valorAtual = selectAnalista.value;
-            selectAnalista.innerHTML = '<option value="" selected disabled>Escolha o Analista...</option>';
-            analistasUnicos.forEach(nome => {
-                const option = document.createElement('option');
-                option.value = nome;
-                option.text = nome;
-                selectAnalista.appendChild(option);
+            const analistas = [...new Set(data.map(i => i.Analista).filter(n => n))].sort();
+            const atual = selectAnalista.value;
+            selectAnalista.innerHTML = '<option value="" selected disabled>Escolha...</option>';
+            analistas.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n; opt.text = n; selectAnalista.appendChild(opt);
             });
-            if(valorAtual && analistasUnicos.includes(valorAtual)) selectAnalista.value = valorAtual;
+            if(atual && analistas.includes(atual)) selectAnalista.value = atual;
         }
 
         function filtrarTarefas() {
             const analista = selectAnalista.value;
-            const statusFiltro = selectStatus.value;
+            const st = selectStatus.value;
             if(!analista) return;
-
             listaDiv.innerHTML = '';
-            const tarefas = dadosGlobais.filter(row => {
-                const matchAnalista = row.Analista === analista;
-                const matchStatus = (statusFiltro === "" || row.Status === statusFiltro);
-                return matchAnalista && matchStatus;
-            });
-
+            const tarefas = dadosGlobais.filter(r => r.Analista === analista && (st === "" || r.Status === st));
+            
             if(tarefas.length === 0) {
-                listaDiv.innerHTML = `<div class="alert alert-info text-center">Nenhuma atividade encontrada com os filtros atuais.</div>`;
+                listaDiv.innerHTML = `<div class="col-12"><div class="alert alert-info text-center">Nada encontrado.</div></div>`;
                 return;
             }
 
@@ -497,62 +751,184 @@
                 const dtPlanInicio = formatarDataBR(t.Plan_Dt_Inicio);
                 const dtPlanFim = formatarDataBR(t.Plan_Dt_Fim);
                 const statusSlug = (t.Status || 'pendente').toLowerCase().replace(/\s+/g, '-');
-                const statusClass = `status-${statusSlug}`;
-                const badgeClass = `badge-${statusSlug}`;
                 const safeAnalista = (t.Analista || '').replace(/'/g, "\\'");
                 const safeLocal = (t.Local || 'Remoto').replace(/'/g, "\\'");
                 const safeAtividade = (t.Atividade || '').replace(/'/g, "\\'");
+                const tJson = JSON.stringify(t).replace(/"/g, '&quot;');
 
                 const cardHTML = `
-                <div class="card card-task ${statusClass} p-3">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge ${badgeClass} rounded-pill">${t.Status || 'Pendente'}</span>
-                        <div class="d-flex align-items-center">
-                            <small class="text-muted me-2"><i class="fas fa-map-marker-alt me-1"></i>${t.Local || 'Remoto'}</small>
-                            <button class="btn-zap-copy" onclick="copiarParaWhatsapp('${safeAnalista}', '${safeLocal}', '${safeAtividade}')">
-                                <i class="fab fa-whatsapp"></i>
-                            </button>
+                <div class="col-md-6 col-12 mb-3">
+                    <div class="card card-task status-${statusSlug} p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge badge-${statusSlug} rounded-pill">${t.Status || 'Pendente'}</span>
+                            <div class="d-flex align-items-center">
+                                <small class="text-muted me-2"><i class="fas fa-map-marker-alt me-1"></i>${t.Local || 'Remoto'}</small>
+                                <button class="btn-action-icon btn-zap" onclick="copiarParaWhatsapp('${safeAnalista}', '${safeLocal}', '${safeAtividade}')">
+                                    <i class="fab fa-whatsapp"></i>
+                                </button>
+                                <button class="btn-action-icon btn-pdf" onclick="abrirModalRelatorio(${tJson})">
+                                    <i class="fas fa-file-pdf"></i>
+                                </button>
+                            </div>
                         </div>
+                        <h5 class="fw-bold mb-3">${t.Atividade}</h5>
+                        <div class="row g-2 mb-3 bg-light p-2 rounded">
+                            <div class="col-6 border-end">
+                                <div class="date-label">Início Planejado</div><div class="date-value">${dtPlanInicio}</div>
+                            </div>
+                            <div class="col-6 ps-3">
+                                <div class="date-label">Fim Planejado</div><div class="date-value">${dtPlanFim}</div>
+                            </div>
+                        </div>
+                        ${t.Observação ? `<p class="small text-muted mb-3"><em>${t.Observação}</em></p>` : ''}
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick='abrirModalEdicao(${tJson})'>
+                            <i class="fas fa-pen me-2"></i>Atualizar Execução
+                        </button>
                     </div>
-                    <h5 class="fw-bold mb-3">${t.Atividade}</h5>
-                    <div class="row g-2 mb-3 bg-light p-2 rounded">
-                        <div class="col-6 border-end">
-                            <div class="date-label">Início Planejado</div>
-                            <div class="date-value">${dtPlanInicio}</div>
-                        </div>
-                        <div class="col-6 ps-3">
-                            <div class="date-label">Fim Planejado</div>
-                            <div class="date-value">${dtPlanFim}</div>
-                        </div>
-                    </div>
-                    ${t.Observação ? `<p class="small text-muted mb-3"><em><i class="fas fa-info-circle me-1"></i>${t.Observação}</em></p>` : ''}
-                    <button class="btn btn-outline-primary btn-sm w-100" onclick='abrirModalEdicao(${JSON.stringify(t)})'>
-                        <i class="fas fa-pen me-2"></i>Atualizar Execução
-                    </button>
                 </div>`;
                 listaDiv.innerHTML += cardHTML;
             });
         }
 
-        function copiarParaWhatsapp(analista, local, atividade) {
-            const texto = `${analista} / ${local} / ${atividade}`;
-            const textArea = document.createElement("textarea");
-            textArea.value = texto;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try { document.execCommand('copy'); toast.show(); } catch (err) { prompt('Copie manualmente:', texto); }
-            document.body.removeChild(textArea);
+        // --- RELATÓRIO PDF ---
+        let tarefaAtualRelatorio = null;
+
+        function abrirModalRelatorio(tarefa) {
+            tarefaAtualRelatorio = tarefa;
+            document.getElementById('rel_analista').innerText = tarefa.Analista;
+            document.getElementById('rel_local').innerText = tarefa.Local || 'Não informado';
+            
+            // Dados Execução
+            document.getElementById('rel_inicio').value = converterDataInput(tarefa.Exec_Dt_Inicio);
+            document.getElementById('rel_fim').value = converterDataInput(tarefa.Exec_Dt_Fim);
+            document.getElementById('rel_descricao').value = '';
+            
+            modalRelatorio.show();
         }
 
-        function abrirModalEdicao(tarefa) {
-            document.getElementById('form_row_index').value = tarefa.row_index;
-            document.getElementById('form_analista').value = tarefa.Analista;
-            document.getElementById('form_atividade').value = tarefa.Atividade;
-            document.getElementById('view_atividade').value = tarefa.Atividade;
-            document.getElementById('form_status').value = tarefa.Status || 'Pendente';
-            document.getElementById('form_obs').value = tarefa.Observação || '';
-            document.getElementById('form_dt_inicio').value = converterDataInput(tarefa.Exec_Dt_Inicio);
-            document.getElementById('form_dt_fim').value = converterDataInput(tarefa.Exec_Dt_Fim);
+        function gerarPDF() {
+            const entrega = document.getElementById('rel_entrega').value;
+            const inicio = document.getElementById('rel_inicio').value;
+            const fim = document.getElementById('rel_fim').value;
+            const descricao = document.getElementById('rel_descricao').value;
+
+            if(!entrega || !inicio || !fim || !descricao) {
+                alert('Preencha todos os campos!');
+                return;
+            }
+
+            // Preenche Template
+            const table1 = document.querySelector('.pdf-table');
+            table1.innerHTML = `
+                <tr>
+                    <td class="bg-header">Contratada:</td>
+                    <td colspan="3">Giespp Gestão Inteligente de Educação e Saúde Pública e Privada Ltda.</td>
+                    <td class="bg-header" style="width: 15%;">Produto:</td>
+                    <td>Siss</td>
+                </tr>
+                <tr>
+                    <td class="bg-header">Contratante:</td>
+                    <td colspan="3">Prefeitura Municipal de Guarulhos</td>
+                    <td class="bg-header">Contrato:</td>
+                    <td>040401/2023-DLC</td>
+                </tr>
+                <tr>
+                    <td class="bg-header">Local:</td>
+                    <td colspan="5" id="pdf_local_target">--</td>
+                </tr>
+                <tr>
+                    <td class="bg-header">Referente Entrega Contratual:</td>
+                    <td colspan="5" id="pdf_entrega_target">--</td>
+                </tr>
+                <tr>
+                    <td class="bg-header">Responsável:</td>
+                    <td colspan="5" id="pdf_responsavel_target">--</td>
+                </tr>
+            `;
+
+            document.getElementById('pdf_local_target').innerText = tarefaAtualRelatorio.Local || 'Secretaria Municipal de Saúde';
+            document.getElementById('pdf_entrega_target').innerText = entrega;
+            document.getElementById('pdf_responsavel_target').innerText = tarefaAtualRelatorio.Analista || '--'; 
+
+            document.getElementById('pdf_data_inicio').innerText = formatarDataHoraBR(inicio);
+            document.getElementById('pdf_data_fim').innerText = formatarDataHoraBR(fim);
+            
+            // Corrige quebras de linha para exibição HTML
+            document.getElementById('pdf_descricao').innerHTML = descricao.replace(/\n/g, '<br>');
+            
+            document.getElementById('pdf_assinatura_resp').innerText = tarefaAtualRelatorio.Analista;
+
+            const element = document.getElementById('pdf-template');
+            
+            // Botão Loading
+            const btn = document.querySelector('#formRelatorio button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Gerando...';
+            btn.disabled = true;
+
+            const opt = {
+                margin:       [10, 10, 20, 10], // Margem inferior maior para o rodapé
+                filename:     `Relatorio_${tarefaAtualRelatorio.Analista}_${Date.now()}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true }, 
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                // Habilita quebra automática de página por CSS
+                pagebreak:    { mode: ['css', 'legacy'] }
+            };
+
+            setTimeout(() => {
+                html2pdf().set(opt).from(element).toPdf().get('pdf').then(function(pdf) {
+                    // Desenha o rodapé em CADA página gerada
+                    const totalPages = pdf.internal.getNumberOfPages();
+                    const w = pdf.internal.pageSize.getWidth();
+                    const h = pdf.internal.pageSize.getHeight();
+
+                    for (let i = 1; i <= totalPages; i++) {
+                        pdf.setPage(i);
+                        // Linha
+                        pdf.setDrawColor(128, 128, 128); // Cinza
+                        pdf.setLineWidth(0.5);
+                        pdf.line(10, h - 15, w - 10, h - 15);
+                        
+                        // Texto
+                        pdf.setFontSize(9);
+                        pdf.setTextColor(0);
+                        pdf.text('Versão do Conteúdo nº 2026/0128105307', 10, h - 10);
+                        
+                        const strPag = `Página ${i} de ${totalPages}`;
+                        // Alinha à direita
+                        const txtW = pdf.getStringUnitWidth(strPag) * 9 / pdf.internal.scaleFactor;
+                        pdf.text(strPag, w - 10 - txtW, h - 10);
+                    }
+                }).save().then(() => {
+                    modalRelatorio.hide();
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }).catch(err => {
+                    console.error("Erro no PDF:", err);
+                    alert("Ocorreu um erro ao gerar o PDF.");
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+            }, 500);
+        }
+
+        function copiarParaWhatsapp(a, l, at) {
+            const t = `${a} / ${l} / ${at}`;
+            const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); toast.show(); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+
+        function abrirModalEdicao(t) {
+            document.getElementById('form_row_index').value = t.row_index;
+            document.getElementById('form_analista').value = t.Analista;
+            document.getElementById('form_atividade').value = t.Atividade;
+            document.getElementById('view_atividade').value = t.Atividade;
+            document.getElementById('form_status').value = t.Status || 'Pendente';
+            document.getElementById('form_obs').value = t.Observação || '';
+            document.getElementById('form_dt_inicio').value = converterDataInput(t.Exec_Dt_Inicio);
+            document.getElementById('form_dt_fim').value = converterDataInput(t.Exec_Dt_Fim);
             modalEdicao.show();
         }
 
@@ -562,34 +938,33 @@
             modalEdicao.hide();
             loadingOverlay.style.display = 'flex';
             loadingText.innerText = 'Salvando...';
-
-            fetch(scriptURL, { method: 'POST', body: new FormData(form)})
-                .then(() => {
-                    alert("Salvo com sucesso!");
-                    form.reset();
-                    carregarDadosPlanilha();
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert("Erro ao salvar.");
-                    loadingOverlay.style.display = 'none';
-                });
+            fetch(scriptURL, { method: 'POST', body: new FormData(form) })
+                .then(() => { alert("Salvo!"); form.reset(); carregarDadosPlanilha(); })
+                .catch(() => { alert("Erro ao salvar."); loadingOverlay.style.display = 'none'; });
         });
 
-        function formatarDataBR(dataString) {
-            if(!dataString) return '--/--';
-            const d = new Date(dataString);
-            return isNaN(d) ? dataString : d.toLocaleDateString('pt-BR');
+        function formatarDataBR(d) {
+            if(!d) return '--/--'; const dt = new Date(d);
+            return isNaN(dt) ? d : dt.toLocaleDateString('pt-BR');
         }
 
-        function converterDataInput(dataString) {
-            if(!dataString) return '';
-            const d = new Date(dataString);
-            if(isNaN(d)) return '';
-            d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-            return d.toISOString().slice(0, 16);
+        function formatarDataHoraBR(isoString) {
+            if(!isoString) return '--/--';
+            const dt = new Date(isoString);
+            const dia = String(dt.getDate()).padStart(2, '0');
+            const mes = String(dt.getMonth() + 1).padStart(2, '0');
+            const ano = dt.getFullYear();
+            const horas = String(dt.getHours()).padStart(2, '0');
+            const minutos = String(dt.getMinutes()).padStart(2, '0');
+            return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+        }
+
+        function converterDataInput(d) {
+            if(!d) return ''; const dt = new Date(d);
+            if(isNaN(dt)) return '';
+            dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset());
+            return dt.toISOString().slice(0, 16);
         }
     </script>
 </body>
 </html>
-
